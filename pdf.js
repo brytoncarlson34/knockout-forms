@@ -117,16 +117,16 @@
           set(INK); doc.text(ls, M + 14, y + 8); y += h + 10; break;
         }
         case 'pricegrid': {
-          const pv = v || {}; ensure(30 + f.rows.length * 30);
+          const pv = v || {}, cols = visibleCols(f, vals); ensure(30 + f.rows.length * 30);
           const c1 = M + 300, c2 = M + 420;
-          font('bold', 8); set(GRAY); doc.text(clean(f.cols[0].label).toUpperCase(), c1, y); if (f.cols[1]) doc.text(clean(f.cols[1].label).toUpperCase(), c2, y); y += 10;
+          font('bold', 8); set(GRAY); doc.text(clean(cols[0].label).toUpperCase(), c1, y); if (cols[1]) doc.text(clean(cols[1].label).toUpperCase(), c2, y); y += 10;
           f.rows.forEach(r => {
             set(B, 1); doc.roundedRect(M, y, CW, 26, 3, 3, 'F');
             checkbox(M + 10, y + 18, pv.pick === r.id, 12);
             font('bold', 12); set(A); doc.text(clean(r.label), M + 30, y + 17); const lw = doc.getTextWidth(clean(r.label));
             font('normal', 10.5); set(INK); doc.text(clean(r.sub || ''), M + 30 + lw + 12, y + 17);
             font('bold', 11); set(P);
-            f.cols.forEach((c, i) => { doc.text(moneyStr(pv[r.id + '_' + c.id]) + ' ' + (f.unit || ''), i ? c2 : c1, y + 17); });
+            cols.forEach((c, i) => { doc.text(moneyStr(pv[r.id + '_' + c.id]) + ' ' + (f.unit || ''), i ? c2 : c1, y + 17); });
             y += 31;
           });
           if (f.note) { font('italic', 9); set(GRAY); doc.text(clean(f.note), M, y + 4); y += 16; }
@@ -242,5 +242,13 @@
     return doc;
   }
 
-  window.KFPDF = { build, invoiceTotals, money, num };
+  // pricegrid option showColsFrom: '<field id>'. Only the columns whose label (or c.when) was picked in that
+  // choice/multi field show, on screen and on the PDF. Nothing picked (or no match) shows every column.
+  function visibleCols(f, vals) {
+    if (!f.showColsFrom) return f.cols;
+    const sel = [].concat((vals || {})[f.showColsFrom] || []).filter(Boolean).map(x => String(x).toLowerCase());
+    const vis = f.cols.filter(c => sel.indexOf(String(c.when || c.label).toLowerCase()) >= 0);
+    return vis.length ? vis : f.cols;
+  }
+  window.KFPDF = { build, invoiceTotals, money, num, visibleCols };
 })();

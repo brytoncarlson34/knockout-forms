@@ -31,8 +31,9 @@ window.APP_CONFIG = {
           { id: 'plan', type: 'pricegrid', label: 'Plan',
             cols: [{ id: 'tankless', label: 'Tankless' }, { id: 'tank', label: 'Tank' }], unit: '/ year',
             rows: [{ id: 'basic', label: 'BASIC', sub: '1 visit a year' }, { id: 'plus', label: 'PLUS', sub: '2 visits a year' }],
-            note: 'Prices are per water heater.' },
-          { id: 'extra_visit', label: 'Extra visit', type: 'money', unit: '/ visit', half: true }
+            // only show the columns for the type(s) picked in wh_type (all of them until one is picked)
+            showColsFrom: 'wh_type',
+            note: 'Prices are per water heater.' }
         ]},
         { title: 'In your corner every visit', fields: [
           { id: 'included', type: 'static', items: [
@@ -44,9 +45,6 @@ window.APP_CONFIG = {
           { id: 'perk_priority', type: 'static', items: ['Priority scheduling'] },
           { id: 'repair_discount', label: '% off repairs', type: 'percent', half: true },
           { id: 'perk_trip', type: 'static', items: ['No trip fee on repair calls'] }
-        ]},
-        { title: 'The fine print', fields: [
-          { id: 'fine', type: 'note', text: 'Renews every year. We remind you before it does. Cancel anytime by call or text. No fee.' }
         ]},
         { title: 'How you pay', fields: [
           { id: 'pay_method', label: 'Payment', type: 'choice', options: ['Cash', 'Check', 'Card'] },
