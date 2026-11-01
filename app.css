@@ -48,6 +48,12 @@ body.sub #banner{display:none}
 .sigtools{display:flex;justify-content:space-between;align-items:center;margin:6px 2px 10px;font-size:14px;color:var(--ink2)}
 /* review + sent */
 .pdfframe{width:100%;height:58vh;border:0;border-radius:var(--r);background:#fff;box-shadow:var(--sh)}
+/* review: the PDF fits the card width; tall forms scroll up and down inside the card, never sideways */
+.pdfview{width:100%;max-height:max(240px,calc(100vh - 356px - var(--safe-t) - var(--safe-b)));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;border-radius:var(--r);background:#fff;box-shadow:var(--sh)}
+.pdfview .pdfpage{display:block;width:100%;height:auto;background:#fff}
+.pdfview .pdfpage+.pdfpage{border-top:6px solid var(--bg)}
+.pdfview .pdfwait{padding:60px 16px;text-align:center;color:var(--ink2)}
+.pdfview.fallback{overflow:hidden;max-height:none;box-shadow:none}
 .done{text-align:center;padding:18px 6px}.done .big{width:76px;height:76px;margin:0 auto;border-radius:26px;display:grid;place-items:center;font-size:40px;background:#DCFCE7;color:var(--green)}
 .done .big.wait{background:#FEF3C7;color:var(--amber)}.done h2{margin:12px 0 6px;font-size:24px}
 /* business look */

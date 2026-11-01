@@ -407,13 +407,47 @@
     lastBlobUrl = URL.createObjectURL(lastDoc.output('blob')); return lastDoc;
   }
   const fileName = (f, v) => (brand().name + ' ' + f.title + ' ' + (v.c_name || '') + ' ' + (v.c_date || '')).replace(/[^A-Za-z0-9 \-]/g, '').trim().replace(/\s+/g, '-') + '.pdf';
+  /* PDF preview that fits the phone: each page drawn to a canvas exactly as wide as the card (pdf.js, bundled
+     in pdfjs.min.js, loaded the first time). No sideways scroll, no zoom. If it cannot load, show the old viewer. */
+  let pdfjsP = null;
+  function loadPdfjs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return pdfjsP || (pdfjsP = new Promise((ok, no) => {
+      const sc = document.createElement('script'); sc.src = 'pdfjs.min.js';
+      sc.onload = () => { if (!window.pdfjsLib) return no(new Error('no pdfjs')); window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs.worker.min.js'; ok(window.pdfjsLib); };
+      sc.onerror = () => { pdfjsP = null; no(new Error('pdfjs did not load')); };
+      document.head.appendChild(sc);
+    }));
+  }
+  async function previewPdf(box, doc) {
+    if (!box || !doc) return;
+    const url = lastBlobUrl;
+    try {
+      const lib = await loadPdfjs();
+      const pdf = await lib.getDocument({ data: new Uint8Array(doc.output('arraybuffer')), isEvalSupported: false }).promise;
+      if (!box.isConnected) return;
+      const w = box.clientWidth || 300, dpr = Math.min(window.devicePixelRatio || 1, 3), pages = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n), vp1 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: (w / vp1.width) * dpr });
+        const cv = document.createElement('canvas'); cv.className = 'pdfpage'; cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+        cv.style.aspectRatio = vp1.width + ' / ' + vp1.height;
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise; pages.push(cv);
+      }
+      if (!box.isConnected || url !== lastBlobUrl) return;
+      box.innerHTML = ''; pages.forEach(c => box.appendChild(c)); box.dataset.pages = pages.length; box.classList.add('ready');
+    } catch (e) {
+      if (!box.isConnected) return;
+      box.innerHTML = '<iframe class="pdfframe" title="PDF" src="' + url + '#view=FitH"></iframe>'; box.classList.add('fallback');
+    }
+  }
   function review() {
     const f = formById(draft.formId), v = draft.vals; chrome('Check it over', 'sub'); makePdf();
     const who = v.c_email ? 'Emails to ' + esc(v.c_email) + ' and the shop.' : 'No customer email, so it goes to the shop only.';
-    main.innerHTML = '<p class="hello">' + who + '</p><iframe class="pdfframe" id="pdfView" title="PDF" src="' + lastBlobUrl + '#view=FitH"></iframe>' +
+    main.innerHTML = '<p class="hello">' + who + '</p><div class="pdfview" id="pdfView" role="img" aria-label="PDF preview"><div class="pdfwait">Getting the preview ready...</div></div>' +
       '<a class="btn soft full tap" id="openPdf" href="' + lastBlobUrl + '" target="_blank" rel="noopener" style="margin-top:12px">Open the PDF full screen</a><button class="btn soft full tap" id="fix" type="button">Fix something</button>';
     foot('<button class="btn pri tap" id="send" type="button">' + I.send + ' Send to customer and shop</button>');
     $('#fix').onclick = () => { stack.length = 0; cur = { name: 'home' }; go('fill'); };
+    previewPdf($('#pdfView'), lastDoc);
     $('#send').onclick = async () => {
       const b = $('#send'); b.disabled = true; b.textContent = 'Sending...';
       const rec = {
@@ -495,7 +529,7 @@
       '<button class="btn soft full tap" id="csvRecent" type="button">Download forms list CSV</button></div>' +
       '<div class="sec">Support</div><div class="card donate"><b>Like the app?</b><p class="meta2" style="margin:6px 0 10px">It is free. A way to chip in is coming soon.</p>' +
       (C.donateUrl ? '<a class="btn pri full" id="donateBtn" href="' + esc(C.donateUrl) + '" target="_blank" rel="noopener">Donate</a>' : '<button class="btn pri full" id="donateBtn" type="button" disabled>Donate (coming soon)</button>') + '</div>' +
-      '<p class="ver">' + esc(brand().name) + ' Forms v3</p>';
+      '<p class="ver">' + esc(brand().name) + ' Forms v3.1</p>';
     $('#goBrand').onclick = () => go('brandScreen');
     $('#goForms').onclick = () => go('formsScreen');
     $('#i_tech').oninput = e => setCfg({ rep: e.target.value.trim() });

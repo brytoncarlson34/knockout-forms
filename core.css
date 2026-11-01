@@ -5,7 +5,7 @@
    CRM name map: --orange = --brand, --orange2 = --brand-2, --navy = --brand-dark, --navy2 = --brand-dark-2. */
 :root{--brand:#F06E0A;--brand-2:#FF8A2B;--brand-dark:#14213D;--brand-dark-2:#1E2C4F;--bg:#F4F5F8;
 --card:#fff;--ink:#0F172A;--ink2:#475569;--ink3:#94A3B8;--line:#E6E8EE;--green:#16A34A;--red:#DC2626;--amber:#D97706;--blue:#1E50A0;
---r:18px;--sh:0 1px 2px rgba(15,23,42,.06),0 4px 14px rgba(15,23,42,.06);--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--ease:cubic-bezier(.2,.8,.2,1)}
+--r:18px;--sh:0 1px 2px rgba(15,23,42,.06),0 4px 14px rgba(15,23,42,.06);--safe-t:max(env(safe-area-inset-top,0px),var(--safe-t-fb,0px));--vgap:0px;--safe-b:env(safe-area-inset-bottom,0px);--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -14,6 +14,15 @@ input,select,textarea{font-size:max(16px,1em)}
 /* shared shell rule: the home screen fits one screen, no scroll, no bounce (body.fit) */
 html.fit,body.fit{height:100%;overflow:hidden;overscroll-behavior:none}
 body.fit{position:fixed;inset:0;display:flex;flex-direction:column;height:100dvh}
+/* shared shell rule: status bar + Home Screen app (html.sa, set by core.js before first paint).
+   The page runs under the status bar (viewport-fit=cover), so every top bar pads by --safe-t: the real
+   env(safe-area-inset-top), or a fallback core.js sets when iOS reports 0 there (iOS 26.x bug).
+   iOS 26 Home Screen apps also size 100dvh/100%/innerHeight as the screen MINUS the status bar while
+   drawing from the very top, which left a dead strip under the tab bar. 100lvh is the true screen there,
+   and core.js puts any leftover gap in --vgap so bottom bars sit on the real bottom edge. */
+html.sa{height:100lvh}
+html.sa body.fit{bottom:auto;height:100lvh}
+body:not(.sub)::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--safe-t);background:var(--bg);z-index:35;pointer-events:none}
 body.fit>.hdr{flex:none;width:100%}
 body.fit>main{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(86px + var(--safe-b))}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
@@ -100,7 +109,7 @@ a.btn.pri,a.btn.dark,a.btn.green{color:#fff}a.btn.soft{color:var(--ink)}
 .steps li b{display:block;font-size:17px;margin-bottom:6px}
 .steps .ico{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#EEF1F6;vertical-align:middle;margin:0 2px}.steps .ico svg{width:18px;height:18px;color:var(--blue)}
 /* bottom tab bar */
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:8px 8px calc(10px + var(--safe-b));background:rgba(255,255,255,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line)}
+.tabs{position:fixed;left:0;right:0;bottom:calc(0px - var(--vgap));z-index:20;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:8px 8px calc(10px + var(--safe-b));background:rgba(255,255,255,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line)}
 .tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink3);height:50px;justify-content:center}
 .tab svg{width:25px;height:25px}.tab.on{color:var(--brand-dark)}
 .tab .badge{position:absolute;top:0;left:50%;margin-left:6px;background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:1px 5px}
@@ -108,12 +117,12 @@ a.btn.pri,a.btn.dark,a.btn.green{color:#fff}a.btn.soft{color:var(--ink)}
 .plus svg{width:28px;height:28px}
 body.sub .tabs,body.bare .tabs{display:none}
 /* bottom action bar (one or two big buttons) */
-.foot{position:fixed;left:0;right:0;bottom:0;z-index:25;padding:12px 16px calc(14px + var(--safe-b));background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.foot{position:fixed;left:0;right:0;bottom:calc(0px - var(--vgap));z-index:25;padding:12px 16px calc(14px + var(--safe-b));background:rgba(255,255,255,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
 .foot .in{max-width:488px;margin:0 auto;display:flex;gap:10px}.foot .in .btn{flex:1}
 /* bottom sheet */
 .scrim{position:fixed;inset:0;z-index:40;background:rgba(15,23,42,.45);opacity:0;pointer-events:none;transition:opacity .25s}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#fff;border-radius:26px 26px 0 0;padding:8px 18px calc(18px + var(--safe-b));transform:translateY(105%);transition:transform .32s var(--ease);max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto}
+.sheet{position:fixed;left:0;right:0;bottom:calc(0px - var(--vgap));z-index:41;background:#fff;border-radius:26px 26px 0 0;padding:8px 18px calc(18px + var(--safe-b));transform:translateY(105%);transition:transform .32s var(--ease);max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto}
 .sheet.on{transform:none}
 .grab{width:40px;height:5px;border-radius:9px;background:#D7DCE4;margin:4px auto 12px}
 .sheet h3{margin:0 0 4px;font-size:21px;letter-spacing:-.01em}.sheet .hint{color:var(--ink2);font-size:14px;margin:0 0 14px;font-style:normal}
@@ -122,6 +131,6 @@ body.sub .tabs,body.bare .tabs{display:none}
 .opt .oi{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--brand);color:#fff;font-size:18px;flex:0 0 36px}
 .opt small{display:block;font-weight:500;color:var(--ink2);font-size:13px}
 /* toast with Undo */
-.toast{position:fixed;left:16px;right:16px;bottom:calc(96px + var(--safe-b));z-index:60;max-width:488px;margin:0 auto;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:15px;transform:translateY(20px);opacity:0;pointer-events:none;transition:all .25s var(--ease)}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(96px + var(--safe-b) - var(--vgap));z-index:60;max-width:488px;margin:0 auto;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:15px;transform:translateY(20px);opacity:0;pointer-events:none;transition:all .25s var(--ease)}
 .toast.on{transform:none;opacity:1;pointer-events:auto}
 .toast button{color:var(--brand-2);font-weight:800}

@@ -84,6 +84,32 @@ window.CORE = (function () {
   document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   // double tap zoom is off through touch-action: manipulation in core.css
   /* fit(on): lock the page to one screen (home), or let it scroll (forms) */
-  function fit(on) { document.documentElement.classList.toggle('fit', !!on); document.body.classList.toggle('fit', !!on); }
-  return { fit, $, esc, store, toast, sheet, closeSheet, pill, isStandalone, parseSetup, makeSetupLink, copyText, readClip, downloadCSV, initials, I };
+  function fit(on) { document.documentElement.classList.toggle('fit', !!on); document.body.classList.toggle('fit', !!on); if (on) window.scrollTo(0, 0); }
+  /* shared shell rule: status bar + Home Screen app (see html.sa in core.css).
+     --safe-t-fb: iOS 26.x can report env(safe-area-inset-top) as 0 in a Home Screen app, which puts the
+     header under the clock. Then we use the known status bar height for the screen size.
+     --vgap: iOS 26 Home Screen apps can size the page as screen minus status bar; this is the missing strip. */
+  function shell() {
+    const de = document.documentElement, sa = isStandalone();
+    de.classList.toggle('sa', sa);
+    if (!sa || !document.body) { de.style.removeProperty('--safe-t-fb'); de.style.removeProperty('--vgap'); return; }
+    const p = document.createElement('div');
+    p.style.cssText = 'position:fixed;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;box-sizing:border-box;height:100lvh;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(p);
+    const envT = parseFloat(getComputedStyle(p).paddingTop) || 0, lvh = p.getBoundingClientRect().height; p.remove();
+    const portrait = window.innerHeight >= window.innerWidth, ios = window.navigator.standalone === true;
+    let fb = 0;
+    if (ios && envT < 1 && portrait) { const sh = Math.max(screen.width, screen.height); fb = sh >= 956 || sh === 874 ? 62 : sh >= 852 && sh !== 896 && sh !== 926 ? 59 : sh >= 812 ? 47 : 20; }
+    if (fb) de.style.setProperty('--safe-t-fb', fb + 'px'); else de.style.removeProperty('--safe-t-fb');
+    const gap = Math.round(lvh - window.innerHeight);
+    if (gap > 0 && gap <= 80) de.style.setProperty('--vgap', gap + 'px'); else de.style.removeProperty('--vgap');
+  }
+  shell();
+  ['resize', 'orientationchange', 'pageshow'].forEach(t => window.addEventListener(t, () => setTimeout(shell, 60)));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(shell, 60));
+  // a locked home screen never drifts: iOS 26 can nudge the page up under the status bar after a keyboard or rotation
+  const pin = () => { if (document.body && document.body.classList.contains('fit') && (window.scrollY || window.pageYOffset)) window.scrollTo(0, 0); };
+  window.addEventListener('scroll', pin, { passive: true });
+  if (window.visualViewport) window.visualViewport.addEventListener('scroll', pin);
+  return { fit, shell, $, esc, store, toast, sheet, closeSheet, pill, isStandalone, parseSetup, makeSetupLink, copyText, readClip, downloadCSV, initials, I };
 })();
